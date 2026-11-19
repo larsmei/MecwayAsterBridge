@@ -194,6 +194,12 @@ CONFIG_BRIDGE = {
             # here too; -1 = singularity check off, RESI_RELA then checks
             # the residual).
             "solver_nprec":   8,
+            # MUMPS memory (mumps_extra). "auto" emits no extra keywords
+            # (catalogue: full rank, GESTION_MEMOIRE='AUTO'), so existing
+            # .comm stay byte-identical. "low_rank": ACCELERATION='LR+',
+            # LOW_RANK_SEUIL=1.E-8. "out_of_core": GESTION_MEMOIRE=
+            # 'OUT_OF_CORE' (less RAM, more disk). Ignored for GCPC.
+            "mumps_memory":   "auto",
             # Linear solver (bridge_to_aster._build_lin_solveur_ref):
             # "MUMPS" (direct, default) or "GCPC" (iterative, conjugate
             # gradient with PRE_COND='LDLT_INC'; residual per iteration in the
@@ -317,6 +323,7 @@ CONFIG_BRIDGE = {
             "newton_reac_iter":      1,
             # MUMPS NPREC (see lin_static_3d).
             "solver_nprec":          8,
+            "mumps_memory":   "auto",
             # Element failure (bridge_failure.py): elements with a
             # plastic strain above the limit get E x stiffness_factor and
             # zero stress. Limit per material: #ASTER-BEZWIJKEN, PLAS_TAB
@@ -404,6 +411,7 @@ CONFIG_BRIDGE = {
             "time_limit":            7200,
             "memory_limit":          4096,
             "solver_nprec":          8,
+            "mumps_memory":   "auto",
             # Element failure: see nonlin_static_3d (checked at the
             # output times).
             "element_failure":       True,
@@ -431,6 +439,7 @@ CONFIG_BRIDGE = {
             "time_limit":            7200,
             "memory_limit":          4096,
             "solver_nprec":          8,
+            "mumps_memory":   "auto",
             # Element failure: see nonlin_static_3d (checked at the
             # output times).
             "element_failure":       True,
@@ -461,6 +470,7 @@ CONFIG_BRIDGE = {
             "time_limit":            1800,
             "memory_limit":          4096,
             "solver_nprec":          8,
+            "mumps_memory":   "auto",
             # Adaptive refinement with HOMARD inside the job
             # (bridge_homard.py, aster_adapt.py; docs/Foutschatter.md par. 7):
             # solve -> ZZ indicator -> refine the Doerfler selection (0.5)
@@ -524,6 +534,7 @@ CONFIG_BRIDGE = {
             "memory_limit":   2048,
             # MUMPS NPREC (see lin_static_3d).
             "solver_nprec":   8,
+            "mumps_memory":   "auto",
             # RESI_RELA of the static step for the prestress (see
             # lin_static_3d; bridge_to_aster._static_step_solveur).
             "lin_solver_resi": 1.0e-5,
@@ -555,6 +566,7 @@ CONFIG_BRIDGE = {
             "time_limit":     1800,
             "memory_limit":   2048,
             "solver_nprec":   8,
+            "mumps_memory":   "auto",
         },
         "harmonic_3d": {
             # Harmonic response in the frequency domain (Mecway has
@@ -603,6 +615,7 @@ CONFIG_BRIDGE = {
             "time_limit":     1800,
             "memory_limit":   2048,
             "solver_nprec":   8,
+            "mumps_memory":   "auto",
         },
         "spectrum_3d": {
             # Response spectrum (earthquake, shock): CALC_MODES and
@@ -630,6 +643,7 @@ CONFIG_BRIDGE = {
             "time_limit":     1800,
             "memory_limit":   2048,
             "solver_nprec":   8,
+            "mumps_memory":   "auto",
         },
         "buckling_3d": {
             # Linear buckling (Mecway B30): MECA_STATIQUE with the loads,
@@ -653,6 +667,7 @@ CONFIG_BRIDGE = {
             "time_limit":     900,
             "memory_limit":   2048,
             "solver_nprec":   8,
+            "mumps_memory":   "auto",
             # RESI_RELA of the static step (stress state; see
             # lin_static_3d; bridge_to_aster._static_step_solveur).
             "lin_solver_resi": 1.0e-5,
@@ -676,6 +691,7 @@ CONFIG_BRIDGE = {
             "time_limit":     900,
             "memory_limit":   2048,
             "solver_nprec":   8,
+            "mumps_memory":   "auto",
         },
         "acoustic_harm_3d": {
             # Harmonic pressure field (acoustics) on a Mecway A30 model:
@@ -701,6 +717,7 @@ CONFIG_BRIDGE = {
             "time_limit":     900,
             "memory_limit":   2048,
             "solver_nprec":   8,
+            "mumps_memory":   "auto",
         },
         "vibroacoustic_modes_3d": {
             # Vibro-acoustics: structure + air/liquid coupled
@@ -722,6 +739,7 @@ CONFIG_BRIDGE = {
             "time_limit":     900,
             "memory_limit":   2048,
             "solver_nprec":   8,
+            "mumps_memory":   "auto",
         },
         "vibroacoustic_harm_3d": {
             # Vibro-acoustics harmonic: structure + air/liquid per
@@ -754,6 +772,7 @@ CONFIG_BRIDGE = {
             "time_limit":     1800,
             "memory_limit":   2048,
             "solver_nprec":   8,
+            "mumps_memory":   "auto",
         },
     },
 }
@@ -1278,6 +1297,77 @@ def log_size():
         return os.path.getsize(log_path())
     except (IOError, OSError):
         return 0
+
+
+# mumps_memory (every analysis). "auto" emits nothing: catalogue
+# c_solveur.py v17.4 keeps GESTION_MEMOIRE='AUTO' and ACCELERATION='AUTO'
+# (full rank), so an existing .comm stays byte-identical. Not applied
+# to GCPC (bridge_to_aster._build_lin_solveur_ref).
+_MUMPS_MEMORY_NOTED = {}
+
+
+def mumps_memory_mode(analysis):
+    """
+    Normalised mumps_memory: "auto", "low_rank" or "out_of_core".
+    Missing key and unknown text are "auto" (unknown: one WARNING).
+    """
+    raw = "auto" if not analysis else analysis.get("mumps_memory", "auto")
+    try:
+        mode = "{0}".format(raw).strip().lower().replace("-", "_")
+        mode = mode.replace(" ", "_")
+    except (TypeError, ValueError, AttributeError):
+        mode = "auto"
+    if mode in ("", "auto", "default"):
+        return "auto"
+    if mode in ("low_rank", "lr", "lr+", "blr"):
+        return "low_rank"
+    if mode in ("out_of_core", "outofcore", "ooc"):
+        return "out_of_core"
+    if mode not in _MUMPS_MEMORY_NOTED:
+        _MUMPS_MEMORY_NOTED[mode] = True
+        log(tr("WARNING: Onbekende mumps_memory '{0}'; auto gebruikt "
+               "(geen extra MUMPS-sleutelwoorden).",
+               "WARNING: Unknown mumps_memory '{0}'; using auto "
+               "(no extra MUMPS keywords).").format(mode))
+    return "auto"
+
+
+def mumps_extra(analysis):
+    """
+    Tail inside SOLVEUR=_F(METHODE='MUMPS', ...), including the leading
+    comma, or "" for auto. Keyword order in _F() does not matter
+    (U4.50.01). low_rank: BLR with one refinement step (LR+), threshold
+    1e-8 (U2.08.03: useful from about a million degrees of freedom; the
+    solution is not bit-identical, RESI_RELA still checks it).
+    out_of_core: the factor goes to disk, so RAM drops and disk use
+    rises. Do not append this to METHODE='GCPC'.
+    """
+    mode = mumps_memory_mode(analysis)
+    if mode == "low_rank":
+        if "low_rank" not in _MUMPS_MEMORY_NOTED:
+            _MUMPS_MEMORY_NOTED["low_rank"] = True
+            log(tr("INFO: MUMPS-geheugen low_rank: ACCELERATION='LR+', "
+                   "LOW_RANK_SEUIL=1e-8 (kleinere factor, minder RAM, "
+                   "minder schrijven naar glob.*). Niet bitgelijk aan "
+                   "volle rang; RESI_RELA controleert de oplossing nog.",
+                   "INFO: MUMPS memory low_rank: ACCELERATION='LR+', "
+                   "LOW_RANK_SEUIL=1e-8 (smaller factor, less RAM, less "
+                   "writing to glob.*). Not bit-identical to full rank; "
+                   "RESI_RELA still checks the solution."))
+        return ", ACCELERATION='LR+', LOW_RANK_SEUIL=1.E-8"
+    if mode == "out_of_core":
+        if "out_of_core" not in _MUMPS_MEMORY_NOTED:
+            _MUMPS_MEMORY_NOTED["out_of_core"] = True
+            log(tr("INFO: MUMPS-geheugen out_of_core: "
+                   "GESTION_MEMOIRE='OUT_OF_CORE' (minder RAM, de factor "
+                   "op schijf: meer schrijven, niet minder). Bij een "
+                   "volle schijf is low_rank de juiste keuze.",
+                   "INFO: MUMPS memory out_of_core: "
+                   "GESTION_MEMOIRE='OUT_OF_CORE' (less RAM, the factor "
+                   "on disk: more writing, not less). When the disk is "
+                   "full, low_rank is the right choice."))
+        return ", GESTION_MEMOIRE='OUT_OF_CORE'"
+    return ""
 
 
 def log_errors(since=0, limit=3):

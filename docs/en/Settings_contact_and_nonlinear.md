@@ -62,7 +62,7 @@ What the nonlinear analyses support:
 | Group (heading on the page) | Keys | Analyses |
 |---|---|---|
 | Code-Aster run | `time_limit`, `memory_limit` | all |
-| Solver | `solver_nprec`; `lin_solver`, `lin_solver_resi` | all; `lin_solver` static only, `lin_solver_resi` static and the static step of modal, buckling and the imperfection |
+| Solver | `solver_nprec`, `mumps_memory`; `lin_solver`, `lin_solver_resi` | all; `lin_solver` static only, `lin_solver_resi` static and the static step of modal, buckling and the imperfection |
 | Steps and convergence | `substeps_per_interval` (static), `newton_max_iter`, `newton_reac_iter`, `default_time_end`, `convergence_criterion`, `convergence_resi_rela`, `convergence_resi_maxi`, `line_search`, `auto_time_stepping` (static) | nonlinear static, dynamic implicit; `default_time_end` also explicit |
 | Contact | `contact_algo`, `contact_smoothing`, `contact_pene_maxi` | nonlinear static, dynamic implicit (`contact_algo` also explicit) |
 | Material and kinematics | `plastic_strain_definition`, `deformation` | nonlinear static, dynamic |
@@ -480,6 +480,19 @@ solver statistics end up in the `.mess` (convergence window, §4.4). That is abo
 - **PETSC** is in the catalogue, but the Windows version of Code-Aster is sequential
   and has no PETSc (`FERMETUR_10`, seen in a test run; U4.50.01 §3.7). The bridge
   therefore does not offer it.
+
+**MUMPS memory (`mumps_memory`), every analysis.** Default `auto`: the bridge sets
+neither `ACCELERATION` nor `GESTION_MEMOIRE`, so the catalogue stays
+(`ACCELERATION='AUTO'` = full rank, `GESTION_MEMOIRE='AUTO'`) and an existing
+`.comm` does not change. `low_rank` adds `ACCELERATION='LR+'` and
+`LOW_RANK_SEUIL=1.E-8` (block low-rank, U4.50.01, U2.08.03). The factor gets
+smaller, MUMPS asks for less RAM and JEVEUX has less to write to `glob.*`.
+The solution is not bit-identical to full rank; with `MECA_STATIQUE`, `RESI_RELA`
+still checks it. `out_of_core` sets `GESTION_MEMOIRE='OUT_OF_CORE'`: less RAM, the
+factor on disk (more writing, not less). Do not use that when the disk is the
+limit. With `lin_solver` `GCPC` the bridge ignores `mumps_memory` (WARNING). Per
+model, without changing the setting for every model:
+`#ASTER-OPTIE mumps_memory = low_rank`.
 
 ### 2.7 Other
 

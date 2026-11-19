@@ -54,7 +54,8 @@ from collections import OrderedDict
 from bridge_bcs import _value_at
 from bridge_results_liml import RESULTS_SUFFIX
 from bridge_utils import (log, tr, CONFIG_BRIDGE, get_active_analysis,
-                          run_name, template_path, parse_yes_no, progress)
+                          run_name, template_path, parse_yes_no, progress,
+                          mumps_extra, mumps_memory_mode)
 
 
 # ==========================================
@@ -123,9 +124,13 @@ def _build_solveur_ref(analysis):
     for MECA_STATIQUE (the residual of the solution is checked
     afterwards), -1 (no check) for STAT_NON_LINE, where Newton's own
     convergence criteria take over (catalogue c_solveur.py v17.4).
+    mumps_memory "auto" (the default) adds nothing, so this line stays
+    byte-identical. low_rank / out_of_core append MUMPS keywords
+    (bridge_utils.mumps_extra).
     """
     nprec = analysis.get("solver_nprec", 8)
-    return "    SOLVEUR=_F(METHODE='MUMPS', NPREC={0}),\n".format(int(nprec))
+    return "    SOLVEUR=_F(METHODE='MUMPS', NPREC={0}{1}),\n".format(
+        int(nprec), mumps_extra(analysis))
 
 
 def _resi_rela(analysis):
@@ -155,8 +160,9 @@ def _static_step_solveur(analysis):
     gives an error of order 10 (NPREC -1: 13 and 64 measured);
     bridge_run_aster._resi_advice turns FACTOR_57 into advice.
     """
-    return "SOLVEUR=_F(METHODE='MUMPS', NPREC={0}, RESI_RELA={1}),".format(
-        int(analysis.get("solver_nprec", 8)), _resi_rela(analysis))
+    return "SOLVEUR=_F(METHODE='MUMPS', NPREC={0}, RESI_RELA={1}{2}),".format(
+        int(analysis.get("solver_nprec", 8)), _resi_rela(analysis),
+        mumps_extra(analysis))
 
 
 # Linear solvers for MECA_STATIQUE (setting "lin_solver").
@@ -170,6 +176,7 @@ def _static_step_solveur(analysis):
 # installé" (seen in a test run; U4.50.01 par. 3.7: PETSC only in the
 # parallel version). Hence not offered.
 LIN_SOLVERS = ("MUMPS", "GCPC")
+_GCPC_MUMPS_WARNED = []
 
 
 def _build_lin_solveur_ref(analysis, refine=False):
@@ -206,6 +213,13 @@ def _build_lin_solveur_ref(analysis, refine=False):
     solver = "{0}".format(analysis.get("lin_solver", "MUMPS")).upper()
     resi = _resi_rela(analysis)
     if solver == "GCPC":
+        mode = mumps_memory_mode(analysis)
+        if mode != "auto" and not _GCPC_MUMPS_WARNED:
+            _GCPC_MUMPS_WARNED.append(mode)
+            log(tr("WARNING: mumps_memory '{0}' geldt niet voor GCPC "
+                   "(alleen MUMPS); genegeerd.",
+                   "WARNING: mumps_memory '{0}' does not apply to GCPC "
+                   "(MUMPS only); ignored.").format(mode))
         line = ("    SOLVEUR=_F(METHODE='GCPC', PRE_COND='LDLT_INC', "
                 "RESI_RELA={0}),\n".format(resi))
     else:
@@ -215,8 +229,9 @@ def _build_lin_solveur_ref(analysis, refine=False):
                    "WARNING: Unknown linear solver '{0}' (lin_solver); "
                    "MUMPS used.").format(solver))
         line = ("    SOLVEUR=_F(METHODE='MUMPS', NPREC={0}, "
-                "RESI_RELA={1}{2}),\n".format(
+                "RESI_RELA={1}{2}{3}),\n".format(
                     int(analysis.get("solver_nprec", 8)), resi,
+                    mumps_extra(analysis),
                     ", POSTTRAITEMENTS='FORCE'" if refine else ""))
     return line + "    INFO=2,\n"
 
@@ -7808,7 +7823,7 @@ def _imperfection_blocks(model_data, analysis, plan, charges, excit_clause,
         "    CALC_CHAR_CRIT=_F(NMAX_CHAR_CRIT={k}),\n"
         "    NORM_MODE=_F(NORME='TRAN'),\n"
         "    VERI_MODE=_F(STOP_ERREUR='NON'),\n"
-        "    SOLVEUR=_F(METHODE='MUMPS', NPREC={nprec}),\n"
+        "    SOLVEUR=_F(METHODE='MUMPS', NPREC={nprec}{extra}),\n"
         ")\n"
         "imp_phi = CREA_CHAMP(OPERATION='EXTR', TYPE_CHAM='NOEU_DEPL_R',\n"
         "                     RESULTAT=imp_modes, NOM_CHAM='DEPL', "
@@ -7826,6 +7841,7 @@ def _imperfection_blocks(model_data, analysis, plan, charges, excit_clause,
         "mesh = MODI_MAILLAGE(reuse=mesh, MAILLAGE=mesh,\n"
         "                     DEFORME=_F(OPTION='TRAN', DEPL=imp_def))\n"
     ).format(k=k, t_end=float(t_end), cara=cara_ref, nprec=nprec,
+             extra=mumps_extra(analysis),
              charge=charge_ref, amp=float(amp), aux=aux, model=model_ref,
              imp_step=_stress_step("imp_stat", model_data, excit, cara_ref,
                                    analysis, model=model_ref,
@@ -8589,17 +8605,21 @@ def _dead_static_block(md_dead, cara_ref, analysis):
 # count (INFO_MODE, catalogue info_mode.py v17.4, U4.52.01) of the buckling
 # factors of K + lambda Kg(dead) in [0, 1]; bridge_run_aster explains
 # BRIDGE_BUCKLING_FOUT.
-_DEAD_CHECK_BLOCK = (
-    "# Dead loads below critical? Count the buckling factors of the dead\n"
-    "# loads alone in [0, 1] (Sturm, INFO_MODE).\n"
-    "tab_dead = INFO_MODE(TYPE_MODE='MODE_FLAMB', MATR_RIGI=rigi_ela,\n"
-    "                     MATR_RIGI_GEOM=rigi_gd, CHAR_CRIT=(0.0, 1.0),\n"
-    "                     SOLVEUR=_F(METHODE='MUMPS'))\n"
-    "_nd = int(tab_dead.EXTR_TABLE().values()['NB_MODE'][0])\n"
-    "print('BRIDGE_DEAD_COUNT', _nd)\n"
-    "if _nd > 0:\n"
-    "    print('BRIDGE_BUCKLING_FOUT DEAD %d' % _nd)\n"
-    "    raise ValueError('knik: constante last alleen al boven kritiek')\n")
+def _dead_check_block(analysis):
+    """INFO_MODE block for dead-load buckling. mumps_memory auto keeps
+    the SOLVEUR line byte-identical (METHODE='MUMPS' only)."""
+    return (
+        "# Dead loads below critical? Count the buckling factors of the dead\n"
+        "# loads alone in [0, 1] (Sturm, INFO_MODE).\n"
+        "tab_dead = INFO_MODE(TYPE_MODE='MODE_FLAMB', MATR_RIGI=rigi_ela,\n"
+        "                     MATR_RIGI_GEOM=rigi_gd, CHAR_CRIT=(0.0, 1.0),\n"
+        "                     SOLVEUR=_F(METHODE='MUMPS'{0}))\n"
+        "_nd = int(tab_dead.EXTR_TABLE().values()['NB_MODE'][0])\n"
+        "print('BRIDGE_DEAD_COUNT', _nd)\n"
+        "if _nd > 0:\n"
+        "    print('BRIDGE_BUCKLING_FOUT DEAD %d' % _nd)\n"
+        "    raise ValueError('knik: constante last alleen al boven kritiek')\n"
+    ).format(mumps_extra(analysis))
 
 
 _IMPOSED_DOFS = ("DX", "DY", "DZ", "DRX", "DRY", "DRZ", "DNOR")
@@ -8862,8 +8882,9 @@ def _calc_modes_block(model_data, analysis, buckling, cara_ref, free=False,
     lines += ["    NORM_MODE=_F(NORME='{0}'),".format(aster_norm),
               "    VERI_MODE=_F(SEUIL={0}, STOP_ERREUR='NON'),".format(
                   "%.10g" % float(analysis.get("modal_tolerance", 1.0e-6))),
-              "    SOLVEUR=_F(METHODE='MUMPS', NPREC={0}),".format(
-                  int(analysis.get("solver_nprec", 8))),
+              "    SOLVEUR=_F(METHODE='MUMPS', NPREC={0}{1}),".format(
+                  int(analysis.get("solver_nprec", 8)),
+                  mumps_extra(analysis)),
               ")"]
     log("INFO: CALC_MODES {0}: {1} modes, normalisation {2}.".format(
         "MODE_FLAMB" if buckling else "DYNAMIQUE", n, norm))
@@ -9347,7 +9368,7 @@ def _build_modal(work_dir, model_data, msh_path, resu_name, analysis):
             "rigidite = COMB_MATR_ASSE(COMB_R=(\n"
             "    _F(MATR_ASSE=rigi_ela, COEF_R=1.0),\n"
             "    _F(MATR_ASSE=rigi_gd, COEF_R=1.0),\n"
-            "))\n" + _DEAD_CHECK_BLOCK)
+            "))\n" + _dead_check_block(analysis))
     if prestress:
         terms = ["rigi_ela", "rigi_geo"] + (["rigi_rot"] if rotation else [])
         assemblage_block += (

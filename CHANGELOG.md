@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **MUMPS memory (`mumps_memory`).** Default `auto` adds nothing to `SOLVEUR`, so
+  existing `.comm` files and the verification results stay as they are (catalogue:
+  full rank, `GESTION_MEMOIRE='AUTO'`). `low_rank` sets `ACCELERATION='LR+'` and
+  `LOW_RANK_SEUIL=1.E-8` on every MUMPS solve (smaller factor, less RAM, less
+  JEVEUX traffic to `glob.*`; not bit-identical, `RESI_RELA` still checks).
+  `out_of_core` sets `GESTION_MEMOIRE='OUT_OF_CORE'` (less RAM, more disk).
+  GCPC ignores the setting. On the start screen under *Solver*, or per model with
+  `#ASTER-OPTIE mumps_memory = low_rank`.
+
 - **Preparation window, and a faster mesh index.** Until Code-Aster starts, Mecway
   showed nothing: the log file was the only trace, and on an 800k-node model that
   silent stretch was still about three minutes. A window now stays open for each

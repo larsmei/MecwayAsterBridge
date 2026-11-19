@@ -61,7 +61,7 @@ Wat de niet-lineaire analyses ondersteunen:
 | Groep (kopje op de pagina) | Sleutels | Analyses |
 |---|---|---|
 | Code-Aster-run | `time_limit`, `memory_limit` | alle |
-| Oplosser | `solver_nprec`; `lin_solver`, `lin_solver_resi` | alle; `lin_solver` alleen statisch, `lin_solver_resi` statisch en de statische stap van modaal, knik en de imperfectie |
+| Oplosser | `solver_nprec`, `mumps_memory`; `lin_solver`, `lin_solver_resi` | alle; `lin_solver` alleen statisch, `lin_solver_resi` statisch en de statische stap van modaal, knik en de imperfectie |
 | Stappen en convergentie | `substeps_per_interval` (statisch), `newton_max_iter`, `newton_reac_iter`, `default_time_end`, `convergence_criterion`, `convergence_resi_rela`, `convergence_resi_maxi`, `line_search`, `auto_time_stepping` (statisch) | niet-lineair statisch, dynamisch impliciet; `default_time_end` ook expliciet |
 | Contact | `contact_algo`, `contact_smoothing`, `contact_pene_maxi` | niet-lineair statisch, dynamisch impliciet (`contact_algo` ook expliciet) |
 | Materiaal en kinematica | `plastic_strain_definition`, `deformation` | niet-lineair statisch, dynamisch |
@@ -486,6 +486,19 @@ bij, zodat de statistiek van de oplosser in de `.mess` komt (convergentiescherm,
 - **PETSC** staat in de catalogus, maar de Windows-versie van Code-Aster is
   sequentieel en heeft geen PETSc (`FERMETUR_10`, gezien in een testrun;
   U4.50.01 §3.7). De bridge biedt het daarom niet aan.
+
+**MUMPS-geheugen (`mumps_memory`), alle analyses.** Standaard `auto`: de bridge
+zet geen `ACCELERATION` en geen `GESTION_MEMOIRE`, dus de catalogus blijft
+(`ACCELERATION='AUTO'` = volle rang, `GESTION_MEMOIRE='AUTO'`) en een bestaande
+`.comm` verandert niet. `low_rank` voegt `ACCELERATION='LR+'` en
+`LOW_RANK_SEUIL=1.E-8` toe (blok-lage-rang, U4.50.01, U2.08.03). De factor wordt
+kleiner, MUMPS vraagt minder RAM en JEVEUX hoeft minder naar `glob.*` te
+schrijven. De oplossing is niet bitgelijk aan volle rang; bij `MECA_STATIQUE`
+controleert `RESI_RELA` haar nog. `out_of_core` zet
+`GESTION_MEMOIRE='OUT_OF_CORE'`: minder RAM, de factor op schijf (meer schrijven,
+niet minder). Gebruik dat niet als de schijf het knelpunt is. Bij `lin_solver`
+`GCPC` negeert de bridge `mumps_memory` (WARNING). Per model, zonder de
+instelling voor alle modellen te wijzigen: `#ASTER-OPTIE mumps_memory = low_rank`.
 
 ### 2.7 Overig
 

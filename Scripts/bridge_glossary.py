@@ -1453,6 +1453,24 @@ SETTING_HELP = {
                      u"MUMPS check for a singular matrix: number of digits "
                      u"that may be lost (8 = Code-Aster default, default in "
                      u"all analyses; -1 = off)."),
+    "mumps_memory": (u"Geheugen van MUMPS. Standaard auto. auto zet geen "
+                     u"extra sleutelwoorden (volle rang, GESTION_MEMOIRE "
+                     u"AUTO): de .comm blijft gelijk. low_rank: blok-lage-"
+                     u"rang (ACCELERATION LR+, drempel 1e-8), kleinere "
+                     u"factor, minder RAM en minder schrijven naar glob.*. "
+                     u"Niet bitgelijk; RESI_RELA controleert de oplossing "
+                     u"nog. out_of_core: factor op schijf, minder RAM maar "
+                     u"meer schijf. Geldt niet voor GCPC. Ook per model: "
+                     u"#ASTER-OPTIE mumps_memory = low_rank.",
+                     u"MUMPS memory. Default auto. auto sets no extra "
+                     u"keywords (full rank, GESTION_MEMOIRE AUTO): the "
+                     u".comm stays the same. low_rank: block low-rank "
+                     u"(ACCELERATION LR+, threshold 1e-8), smaller factor, "
+                     u"less RAM and less writing to glob.*. Not "
+                     u"bit-identical; RESI_RELA still checks the solution. "
+                     u"out_of_core: factor on disk, less RAM but more disk. "
+                     u"Does not apply to GCPC. Per model too: "
+                     u"#ASTER-OPTIE mumps_memory = low_rank."),
     "lin_solver": (u"Oplosser voor Ku = F in de statische analyse: MUMPS "
                    u"(direct, standaard) of GCPC (iteratief, met "
                    u"residu-grafiek in het convergentiescherm).",

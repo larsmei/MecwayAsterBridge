@@ -14,6 +14,9 @@
 #     MUMPS error estimate gives the page and value for lin_solver_resi, a
 #     large one the singular-matrix hint; the SOLVEUR line of the static
 #     step of modal/buckling (bridge_to_aster._static_step_solveur);
+#   - MUMPS memory (mumps_memory): auto keeps the SOLVEUR lines
+#     byte-identical; low_rank and out_of_core append keywords; GCPC
+#     does not get them.
 #   - harmonic total stresses with the loss factor (KNOWN_BUGS 120): the
 #     classes of solid groups per eta, only materials whose ELAS got
 #     AMOR_HYST (bridge_harmonic._stress_classes, _stress_args).
@@ -562,6 +565,49 @@ def _newton_table(maxi):
          u"atteint", u""])
 
 
+def test_mumps_memory():
+    """mumps_memory auto does not change SOLVEUR bytes. low_rank and
+    out_of_core append keywords. GCPC stays GCPC."""
+    import bridge_to_aster as b2a
+    extra = ", ACCELERATION='LR+', LOW_RANK_SEUIL=1.E-8"
+    ooc = ", GESTION_MEMOIRE='OUT_OF_CORE'"
+    base = "    SOLVEUR=_F(METHODE='MUMPS', NPREC=8),\n"
+    check(b2a._build_solveur_ref({}) == base, b2a._build_solveur_ref({}))
+    check(b2a._build_solveur_ref({"mumps_memory": "auto"}) == base,
+          "explicit auto")
+    step = "SOLVEUR=_F(METHODE='MUMPS', NPREC=8, RESI_RELA=1e-05),"
+    check(b2a._static_step_solveur({}) == step, b2a._static_step_solveur({}))
+    lin = ("    SOLVEUR=_F(METHODE='MUMPS', NPREC=8, RESI_RELA=1e-05),\n"
+           "    INFO=2,\n")
+    check(b2a._build_lin_solveur_ref({}) == lin, b2a._build_lin_solveur_ref({}))
+    forced = b2a._build_lin_solveur_ref({}, refine=True)
+    check(forced == (
+        "    SOLVEUR=_F(METHODE='MUMPS', NPREC=8, RESI_RELA=1e-05, "
+        "POSTTRAITEMENTS='FORCE'),\n    INFO=2,\n"), forced)
+    dead = b2a._dead_check_block({})
+    check("SOLVEUR=_F(METHODE='MUMPS'))" in dead and "ACCELERATION" not in dead,
+          dead)
+    low = {"mumps_memory": "low_rank", "solver_nprec": 8}
+    check(extra in b2a._build_solveur_ref(low), b2a._build_solveur_ref(low))
+    check(extra in b2a._static_step_solveur(low), b2a._static_step_solveur(low))
+    check(extra in b2a._build_lin_solveur_ref(low), "lin low_rank")
+    both = b2a._build_lin_solveur_ref(low, refine=True)
+    check(extra in both and "POSTTRAITEMENTS='FORCE'" in both, both)
+    check("METHODE='MUMPS'" + extra in b2a._dead_check_block(low), "dead")
+    oc = {"mumps_memory": "out_of_core"}
+    got = b2a._build_solveur_ref(oc)
+    check(ooc in got and "ACCELERATION" not in got, got)
+    gcpc = b2a._build_lin_solveur_ref(
+        {"lin_solver": "GCPC", "mumps_memory": "low_rank"})
+    check(gcpc == (
+        "    SOLVEUR=_F(METHODE='GCPC', PRE_COND='LDLT_INC', "
+        "RESI_RELA=1e-05),\n    INFO=2,\n"), gcpc)
+    bridge_utils._MUMPS_MEMORY_NOTED.clear()
+    check(bridge_utils.mumps_extra({"mumps_memory": "nope"}) == "", "unknown")
+    for name, ad in bridge_utils.CONFIG_BRIDGE["analyses"].items():
+        check(ad.get("mumps_memory") == "auto", name)
+
+
 def test_no_resistance():
     """PipeClip-type stop (MECANONLINE9_7): no step converged and the
     absolute residual about 0: advice RELA_OF_MAXI; not with a normal
@@ -579,7 +625,7 @@ def main():
                  test_bonded_offset, test_harm_stress_eta,
                  test_constraint_constant, test_bonded_gap, test_alarm_hint,
                  test_ccx_keywords, test_zone_keys,
-                 test_friction_coef, test_no_resistance):
+                 test_friction_coef, test_no_resistance, test_mumps_memory):
         test()
     if FAILS:
         for f in FAILS:

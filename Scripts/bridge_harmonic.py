@@ -55,7 +55,7 @@ from collections import OrderedDict
 
 import bridge_to_aster as b2a
 import bridge_dyna_modal as bdm
-from bridge_utils import log, tr, CONFIG_BRIDGE, run_name
+from bridge_utils import log, tr, CONFIG_BRIDGE, run_name, mumps_extra
 
 HARM_ANALYSIS = "harmonic_3d"
 # Node selections with the frequency response in the log and a CSV (by the
@@ -634,8 +634,8 @@ def _harm_block(analysis, plan, basis, excit, alpha, beta, zeta, damped_c,
             "    EXCIT=(",
         ] + excit + [
             "    ),",
-            "    SOLVEUR=_F(METHODE='MUMPS', NPREC={0}),".format(
-                int(analysis.get("solver_nprec", 8))),
+            "    SOLVEUR=_F(METHODE='MUMPS', NPREC={0}{1}),".format(
+                int(analysis.get("solver_nprec", 8)), mumps_extra(analysis)),
             ")",
             "",
         ]

@@ -87,6 +87,14 @@ of the program, if you do not want it inside `Scripts\`.
 The program needs no settings screen. A log line `Mesh read with aster_fast` means it was
 used.
 
+A large solid (on the order of a million degrees of freedom and up) can still fill
+the work disk while MUMPS factorises: Code-Aster parks objects in `glob.*` to free
+RAM. That is not changed by `aster_fast`. On the start screen, page of the analysis,
+*Solver* > *MUMPS memory*, choose `low_rank` (block low-rank). The default `auto`
+leaves the solver line as before. `out_of_core` uses less RAM and **more** disk.
+The same switch per model, without changing every analysis:
+`#ASTER-OPTIE mumps_memory = low_rank`.
+
 ## First run
 
 1. Open a model in Mecway, for example a copy of
