@@ -12,8 +12,12 @@ in Mecway's *Custom model definition*.
 
 [![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/trednuk/mecwayasterbridge?utm_source=readme&utm_medium=badge)
 
-Version: **V2026.14** (see [`CHANGELOG.md`](CHANGELOG.md)). Dutch documentation:
-[`docs/Handleiding.md`](docs/Handleiding.md).
+Version: **V2026.14** (fork release **[V2026.14-fast.1](https://github.com/larsmei/MecwayAsterBridge/releases/tag/V2026.14-fast.1)**,
+see [`CHANGELOG.md`](CHANGELOG.md)). Dutch documentation:
+[`docs/Handleiding.md`](docs/Handleiding.md). This repository is a fork of
+[trednuK/MecwayAsterBridge](https://github.com/trednuK/MecwayAsterBridge) with a faster
+mesh step for large models (`aster_fast`, below). The version shown on the start screen
+stays **V2026.14**.
 
 **Provided as is, without warranty (MPL-2.0, sections 6 and 7). Always check results
 independently before you rely on them.**
@@ -32,17 +36,29 @@ independently before you rely on them.**
   <https://simulease.com/en/download/> (MSI installer "Code_Aster 2025", which installs
   version 17.4; accessed 6 October 2026). The official site
   [<https://www.code-aster.org>](https://open-simulation-center.org/downloads/code_aster/code_aster/17.4.0) does also list a Windows version.
-- Nothing else: the bridge is standalone and uses only the Python that comes with Mecway
-  and with Code-Aster. No `pip` packages, no extensions.
+- Nothing else to install with `pip`. The bridge uses only the Python that comes with
+  Mecway and with Code-Aster. For a large mesh, the Windows release also includes one
+  program, `Scripts\aster_fast.exe` (see Installation). Without that file the bridge
+  still runs; preparing the Code-Aster files is just slower.
 
 ## Installation
 
 1. **Install Code-Aster.** With the MSI package the launcher ends up in
    `%LOCALAPPDATA%\code_aster\v2025\17.4\bin\run_aster.bat`, which is the bridge's
    default; nothing needs to be set if you keep that location.
-2. **Get the bridge.** Download and unpack the release, or clone the repository:
+2. **Get the bridge.** Download and unpack the Windows release
+   [`MecwayAsterBridge-V2026.14-fast.1-windows.zip`](https://github.com/larsmei/MecwayAsterBridge/releases/tag/V2026.14-fast.1).
+   That archive already contains `Scripts\aster_fast.exe`.
+   Or clone this repository:
    ```
-   git clone https://github.com/trednuK/MecwayAsterBridge.git
+   git clone https://github.com/larsmei/MecwayAsterBridge.git
+   ```
+   A clone does not contain the `.exe`. Download `aster_fast.exe` from the same release
+   and copy it to `Scripts\aster_fast.exe`. To build it yourself you need
+   [Rust](https://rustup.rs/) (the MSVC or GNU Windows target):
+   ```
+   cargo build --release --manifest-path rust/aster_fast/Cargo.toml
+   copy rust\aster_fast\target\release\aster_fast.exe Scripts\
    ```
    Keep the folder in a fixed place: Mecway runs the scripts from there, and Code-Aster
    loads `Scripts/aster_results_export.py` from the same place during a run. Use a short
@@ -51,6 +67,23 @@ independently before you rely on them.**
    *Tools* > *Scripts...* > *New*, and choose the existing file
    `Scripts\MecwayAsterBridgeMain.py`. The script then appears as an item in the *Tools*
    menu; that is where you start the bridge. No other scripts need to be added.
+
+### Large meshes (`aster_fast.exe`)
+
+On a model of about 800,000 nodes, IronPython 2.7 can spend more than half an hour
+building the files before Code-Aster starts. `Scripts\aster_fast.exe` does the two slow
+steps outside IronPython: it reads the mesh out of the `.liml` (results under `<solution>`
+are still skipped) and writes the Code-Aster `.mail`. The mesh text is the same as the
+pure Python writer. Materials, loads and constraints are still read by the bridge.
+
+The Windows zip already has the program in place. Nothing else to install, and no `pip`
+package. If `aster_fast.exe` sits next to `MecwayAsterBridgeMain.py`, the bridge uses it
+on its own. If the file is missing, or the environment variable `ASTER_FAST` is `0`
+before Mecway starts, the bridge uses Python only. `ASTER_FAST` may also be the full path
+of the program, if you do not want it inside `Scripts\`.
+
+The program needs no settings screen. A log line `Mesh read with aster_fast` means it was
+used.
 
 ## First run
 
@@ -134,7 +167,10 @@ from the `.liml` file, and a real run always needs Mecway and Code-Aster on Wind
 
 - `Scripts/` – the bridge: `MecwayAsterBridgeMain.py` (started from Mecway), the
   `bridge_*.py` modules, the `aster_*.py` scripts that run inside the Code-Aster job and
-  the `.comm` templates
+  the `.comm` templates. The Windows release also puts `aster_fast.exe` here; that file
+  is not stored in Git
+- `rust/aster_fast/` – source of `aster_fast` (no library dependencies). Build instructions
+  are under Installation
 - `docs/` (Dutch) and `docs/en/` (English) – documentation
 - `TestFiles/` – test models; `TestFiles/Voorbeelden/` – example models of the `#ASTER`
   documentation; `TestFiles/Verificatie/` – verification set
