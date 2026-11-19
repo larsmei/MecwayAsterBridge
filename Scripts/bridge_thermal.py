@@ -84,7 +84,7 @@ import re
 from collections import OrderedDict
 
 from bridge_utils import (log, parse_and_convert, CONFIG_BRIDGE, tr,
-                          run_name)
+                          run_name, mumps_lr_extra)
 import bridge_mesh
 
 
@@ -2678,8 +2678,9 @@ def build_thermal(work_dir, model_data, msh_path, resu_name, analysis):
                   "    SCHEMA_TEMPS=_F(SCHEMA='THETA', THETA={0}),".format(
                       _r(analysis.get("theta", 0.57)))]
     solve += ["    INCREMENT=_F(LIST_INST=times),",
-              "    SOLVEUR=_F(METHODE='MUMPS', NPREC={0}),".format(
-                  int(analysis.get("solver_nprec", 8)))]
+              "    SOLVEUR=_F(METHODE='MUMPS', NPREC={0}{1}),".format(
+                  int(analysis.get("solver_nprec", 8)),
+                  mumps_lr_extra(analysis))]
     if tb.nonlinear:
         solve += ["    NEWTON=_F(REAC_ITER={0}),".format(
                       int(analysis.get("newton_reac_iter", 1))),

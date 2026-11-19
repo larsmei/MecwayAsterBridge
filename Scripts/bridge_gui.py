@@ -254,6 +254,8 @@ ANALYSIS_SPECS = [
                       "Memory limit run_aster [MB]"), "int", 1),
     ("solver_nprec", ("MUMPS NPREC (-1 = controle uit)",
                       "MUMPS NPREC (-1 = check off)"), "int", -1),
+    ("mumps_lr", ("MUMPS lage rang (LR+)",
+                  "MUMPS low-rank (LR+)"), "bool", None),
     ("lin_solver", ("Lineaire oplosser (MUMPS / GCPC)",
                     "Linear solver (MUMPS / GCPC)"), "choice",
      ("MUMPS", "GCPC")),

@@ -102,7 +102,9 @@ used.
    - **General > Work folder**: where the run files go (`.comm`, `.mess`, results, log).
      Empty means `WorkDir` next to the `Scripts` folder; it is created when needed;
    - the active analysis follows the Mecway analysis type (`auto`); each analysis has
-     its own page with settings. Hover over a setting for an explanation.
+     its own page with settings. Hover over a setting for an explanation. Under
+     *Solver*, *MUMPS low-rank (LR+)* is off by default (full rank). Turn it on for a
+     large solid model: the factor is stored compressed (`ACCELERATION='LR+'`).
 3. Click **Start**. A **Preparing** window shows each step until Code-Aster starts
    (reading the model, writing the mesh, writing `.comm` and `.export`), with counts and
    the elapsed time. Code-Aster then runs in a separate window; the convergence window shows

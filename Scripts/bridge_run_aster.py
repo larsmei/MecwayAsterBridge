@@ -605,7 +605,7 @@ _SPECTRUM_HINTS = {
                 u"Lower spectrum_damping or Mecway's Rayleigh damping (beta "
                 u"damps the highest modes), or the number of modes."),
 }
-# Linear buckling with #ASTER-CONSTANT (bridge_to_aster._DEAD_CHECK_BLOCK):
+# Linear buckling with #ASTER-CONSTANT (bridge_to_aster._dead_check_block):
 # the constant (dead) loads alone are already at or above critical.
 _MESS_BUCKLING_RE = re.compile(r"BRIDGE_BUCKLING_FOUT\s+(\w+)\s*(.*)")
 _BUCKLING_HINTS = {

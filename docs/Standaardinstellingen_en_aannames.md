@@ -87,6 +87,7 @@ Pagina's *Algemeen* en *Elementen* van het startscherm. Ze gelden voor alle anal
 | `time_limit` [s] | 600 (statisch), 1800 (niet-lineair statisch, thermisch), 7200 (dynamisch), 900 (modaal, knik) | `P time_limit` in de `.export`; `run_aster` stopt daarna | Keuze, NIET gemeten | lange runs; een afgebroken run levert geen volledige resultaten | - |
 | `memory_limit` [MB] | 2048 (statisch, modaal, knik), 4096 (overige) | `P memory_limit` in de `.export` | Keuze, NIET gemeten | `.mess` of convergentiescherm toont geheugentekort | - |
 | `solver_nprec` (MUMPS NPREC) | 8 | `SOLVEUR=_F(METHODE='MUMPS', NPREC=...)`: aantal decimalen dat bij de factorisatie verloren mag gaan voor de matrix singulier heet | 8 = CA (`c_solveur.py`), in alle analyses | zie §3.2 | R-FREE (§5) |
+| `mumps_lr` (MUMPS lage rang, LR+) | uit | extra sleutelwoorden in elke `SOLVEUR=_F(METHODE='MUMPS', ...)`: aan zet `ACCELERATION='LR+'` en `LOW_RANK_SEUIL=1.E-8` (kleinere factor, minder RAM, minder schrijven naar `glob.*`). uit zet niets | uit = CA (volle rang): bestaande `.comm` blijven bytegelijk. BLR is niet bitgelijk; `RESI_RELA` controleert nog (U4.50.01, U2.08.03) | groot volumemodel waarbij JEVEUX `glob.*` volschrijft. Niet bij `lin_solver` `GCPC` | NIET gemeten |
 
 Resultaatvelden per analyse: statisch `displacements`, `stresses`, `vonmises`,
 `reactions`, `beam_forces`, `shell_forces`, `safety_factor`; niet-lineair statisch

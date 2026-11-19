@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **MUMPS low-rank (`mumps_lr`).** On the start screen, under *Solver*, next to
+  *MUMPS NPREC*. Default off: no extra keywords, so existing `.comm` files stay as
+  they are (full rank). On sets `ACCELERATION='LR+'` and `LOW_RANK_SEUIL=1.E-8` on
+  every MUMPS solve (smaller factor, less RAM, less JEVEUX traffic to `glob.*`;
+  not bit-identical, `RESI_RELA` still checks). GCPC ignores it. Per model:
+  `#ASTER-OPTIE mumps_lr = on`.
+
 - **Preparation window, and a faster mesh index.** Until Code-Aster starts, Mecway
   showed nothing: the log file was the only trace, and on an 800k-node model that
   silent stretch was still about three minutes. A window now stays open for each

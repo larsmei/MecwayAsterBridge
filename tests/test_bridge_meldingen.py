@@ -562,6 +562,37 @@ def _newton_table(maxi):
          u"atteint", u""])
 
 
+def test_mumps_lr():
+    """mumps_lr off does not change SOLVEUR bytes. On appends LR+."""
+    import bridge_to_aster as b2a
+    base = "    SOLVEUR=_F(METHODE='MUMPS', NPREC=8),\n"
+    check(b2a._build_solveur_ref({}) == base, "missing key: {0}".format(
+        b2a._build_solveur_ref({})))
+    check(b2a._build_solveur_ref({"mumps_lr": False}) == base, "off")
+    on = b2a._build_solveur_ref({"mumps_lr": True, "solver_nprec": 8})
+    check(on == ("    SOLVEUR=_F(METHODE='MUMPS', NPREC=8, "
+                 "ACCELERATION='LR+', LOW_RANK_SEUIL=1.E-8),\n"),
+          "on: {0}".format(on))
+    step = b2a._static_step_solveur({"mumps_lr": True})
+    check(step == ("SOLVEUR=_F(METHODE='MUMPS', NPREC=8, RESI_RELA=1e-05, "
+                   "ACCELERATION='LR+', LOW_RANK_SEUIL=1.E-8),"),
+          "static step: {0}".format(step))
+    line = b2a._build_lin_solveur_ref({"mumps_lr": False}, refine=True)
+    check("POSTTRAITEMENTS='FORCE'" in line and "ACCELERATION" not in line,
+          "refine off: {0}".format(line))
+    line = b2a._build_lin_solveur_ref(
+        {"mumps_lr": True, "lin_solver": "GCPC"})
+    check("METHODE='GCPC'" in line and "ACCELERATION" not in line,
+          "gcpc: {0}".format(line))
+    dead = b2a._dead_check_block({})
+    check("SOLVEUR=_F(METHODE='MUMPS'))" in dead, "dead off")
+    dead = b2a._dead_check_block({"mumps_lr": True})
+    check("SOLVEUR=_F(METHODE='MUMPS', ACCELERATION='LR+', "
+          "LOW_RANK_SEUIL=1.E-8))" in dead, "dead on")
+    for name, ad in bridge_utils.CONFIG_BRIDGE["analyses"].items():
+        check(ad.get("mumps_lr") is False, name)
+
+
 def test_no_resistance():
     """PipeClip-type stop (MECANONLINE9_7): no step converged and the
     absolute residual about 0: advice RELA_OF_MAXI; not with a normal
@@ -579,7 +610,7 @@ def main():
                  test_bonded_offset, test_harm_stress_eta,
                  test_constraint_constant, test_bonded_gap, test_alarm_hint,
                  test_ccx_keywords, test_zone_keys,
-                 test_friction_coef, test_no_resistance):
+                 test_friction_coef, test_mumps_lr, test_no_resistance):
         test()
     if FAILS:
         for f in FAILS:

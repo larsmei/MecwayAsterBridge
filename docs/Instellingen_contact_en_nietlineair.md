@@ -61,7 +61,7 @@ Wat de niet-lineaire analyses ondersteunen:
 | Groep (kopje op de pagina) | Sleutels | Analyses |
 |---|---|---|
 | Code-Aster-run | `time_limit`, `memory_limit` | alle |
-| Oplosser | `solver_nprec`; `lin_solver`, `lin_solver_resi` | alle; `lin_solver` alleen statisch, `lin_solver_resi` statisch en de statische stap van modaal, knik en de imperfectie |
+| Oplosser | `solver_nprec`, `mumps_lr`; `lin_solver`, `lin_solver_resi` | alle; `lin_solver` alleen statisch, `lin_solver_resi` statisch en de statische stap van modaal, knik en de imperfectie |
 | Stappen en convergentie | `substeps_per_interval` (statisch), `newton_max_iter`, `newton_reac_iter`, `default_time_end`, `convergence_criterion`, `convergence_resi_rela`, `convergence_resi_maxi`, `line_search`, `auto_time_stepping` (statisch) | niet-lineair statisch, dynamisch impliciet; `default_time_end` ook expliciet |
 | Contact | `contact_algo`, `contact_smoothing`, `contact_pene_maxi` | niet-lineair statisch, dynamisch impliciet (`contact_algo` ook expliciet) |
 | Materiaal en kinematica | `plastic_strain_definition`, `deformation` | niet-lineair statisch, dynamisch |
@@ -438,6 +438,17 @@ de factorisatie verloren mag gaan voor Code-Aster de matrix singulier noemt.
 | | `lin_static_3d` | niet-lineair, modaal, knik, thermisch | CA |
 |---|---|---|---|
 | `solver_nprec` (MUMPS NPREC) | 8 | 8 | 8 |
+| `mumps_lr` (MUMPS LR+) | uit | uit | uit (volle rang) |
+
+**MUMPS lage rang (`mumps_lr`), alle analyses.** Standaard uit: de bridge zet geen
+`ACCELERATION`, dus de catalogus blijft (volle rang) en een bestaande `.comm`
+verandert niet. Aan voegt `ACCELERATION='LR+'` en `LOW_RANK_SEUIL=1.E-8` toe
+(blok-lage-rang, U4.50.01, U2.08.03) aan elke `SOLVEUR=_F(METHODE='MUMPS', ...)`.
+De factor wordt kleiner, MUMPS vraagt minder RAM en JEVEUX hoeft minder naar
+`glob.*` te schrijven. De oplossing is niet bitgelijk aan volle rang; bij
+`MECA_STATIQUE` controleert `RESI_RELA` haar nog. Bij `lin_solver` `GCPC` negeert
+de bridge `mumps_lr` (WARNING). Per model, zonder de instelling voor alle modellen
+te wijzigen: `#ASTER-OPTIE mumps_lr = on`.
 
 Bij niet-lineair telt een singuliere matrix als `ERREUR` en leidt (impliciet
 dynamisch) tot stapverkleining (U4.34.03). Een vrij bewegend deel geeft in

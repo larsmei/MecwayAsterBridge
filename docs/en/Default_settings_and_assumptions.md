@@ -87,6 +87,7 @@ Pages *General* and *Elements* of the start screen. They apply to all analyses.
 | `time_limit` [s] | 600 (static), 1800 (nonlinear static, thermal), 7200 (dynamic), 900 (modal, buckling) | `P time_limit` in the `.export`; `run_aster` stops afterwards | Choice, NOT measured | long runs; an aborted run gives no complete results | - |
 | `memory_limit` [MB] | 2048 (static, modal, buckling), 4096 (others) | `P memory_limit` in the `.export` | Choice, NOT measured | `.mess` or convergence window shows a memory shortage | - |
 | `solver_nprec` (MUMPS NPREC) | 8 | `SOLVEUR=_F(METHODE='MUMPS', NPREC=...)`: number of digits that may be lost in the factorisation before the matrix is called singular | 8 = CA (`c_solveur.py`), in all analyses | see §3.2 | R-FREE (§5) |
+| `mumps_lr` (MUMPS low-rank, LR+) | off | extra keywords in every `SOLVEUR=_F(METHODE='MUMPS', ...)`: on sets `ACCELERATION='LR+'` and `LOW_RANK_SEUIL=1.E-8` (smaller factor, less RAM, less writing to `glob.*`). off sets nothing | off = CA (full rank): existing `.comm` stay byte-identical. BLR is not bit-identical; `RESI_RELA` still checks (U4.50.01, U2.08.03) | large solid model where JEVEUX fills `glob.*`. Not with `lin_solver` `GCPC` | NOT measured |
 
 Result fields per analysis: static `displacements`, `stresses`, `vonmises`,
 `reactions`, `beam_forces`, `shell_forces`, `safety_factor`; nonlinear static also

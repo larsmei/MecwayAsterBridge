@@ -62,7 +62,7 @@ What the nonlinear analyses support:
 | Group (heading on the page) | Keys | Analyses |
 |---|---|---|
 | Code-Aster run | `time_limit`, `memory_limit` | all |
-| Solver | `solver_nprec`; `lin_solver`, `lin_solver_resi` | all; `lin_solver` static only, `lin_solver_resi` static and the static step of modal, buckling and the imperfection |
+| Solver | `solver_nprec`, `mumps_lr`; `lin_solver`, `lin_solver_resi` | all; `lin_solver` static only, `lin_solver_resi` static and the static step of modal, buckling and the imperfection |
 | Steps and convergence | `substeps_per_interval` (static), `newton_max_iter`, `newton_reac_iter`, `default_time_end`, `convergence_criterion`, `convergence_resi_rela`, `convergence_resi_maxi`, `line_search`, `auto_time_stepping` (static) | nonlinear static, dynamic implicit; `default_time_end` also explicit |
 | Contact | `contact_algo`, `contact_smoothing`, `contact_pene_maxi` | nonlinear static, dynamic implicit (`contact_algo` also explicit) |
 | Material and kinematics | `plastic_strain_definition`, `deformation` | nonlinear static, dynamic |
@@ -433,6 +433,16 @@ lost in the factorisation before Code-Aster calls the matrix singular.
 | | `lin_static_3d` | nonlinear, modal, buckling, thermal | CA |
 |---|---|---|---|
 | `solver_nprec` (MUMPS NPREC) | 8 | 8 | 8 |
+| `mumps_lr` (MUMPS LR+) | off | off | off (full rank) |
+
+**MUMPS low-rank (`mumps_lr`), every analysis.** Default off: the bridge sets no
+`ACCELERATION`, so the catalogue stays (full rank) and an existing `.comm` does not
+change. On adds `ACCELERATION='LR+'` and `LOW_RANK_SEUIL=1.E-8` (block low-rank,
+U4.50.01, U2.08.03) to every `SOLVEUR=_F(METHODE='MUMPS', ...)`. The factor gets
+smaller, MUMPS asks for less RAM and JEVEUX has less to write to `glob.*`. The
+solution is not bit-identical to full rank; with `MECA_STATIQUE`, `RESI_RELA` still
+checks it. With `lin_solver` `GCPC` the bridge ignores `mumps_lr` (WARNING). Per
+model, without changing the setting for every model: `#ASTER-OPTIE mumps_lr = on`.
 
 In nonlinear analysis a singular matrix counts as `ERREUR` and leads (implicit
 dynamic) to step reduction (U4.34.03). A part that can move freely gives in
