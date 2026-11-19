@@ -2,13 +2,6 @@
 
 ## Unreleased
 
-- **MUMPS low-rank (`mumps_lr`).** On the start screen, under *Solver*, next to
-  *MUMPS NPREC*. Default off: no extra keywords, so existing `.comm` files stay as
-  they are (full rank). On sets `ACCELERATION='LR+'` and `LOW_RANK_SEUIL=1.E-8` on
-  every MUMPS solve (smaller factor, less RAM, less JEVEUX traffic to `glob.*`;
-  not bit-identical, `RESI_RELA` still checks). GCPC ignores it. Per model:
-  `#ASTER-OPTIE mumps_lr = on`.
-
 - **Preparation window, and a faster mesh index.** Until Code-Aster starts, Mecway
   showed nothing: the log file was the only trace, and on an 800k-node model that
   silent stretch was still about three minutes. A window now stays open for each
@@ -17,7 +10,8 @@
   stores nodes, plain elements and numeric node groups as arrays, and counts the
   free faces of the solids while it reads the `.liml` (the same faces the error
   estimator used to count in IronPython). The `.mail` bytes are unchanged.
-  The Windows executable is on fork release **V2026.14-fast.3**. `ASTER_FAST=0`
+  The Windows executable is on fork release **V2026.14-fast.3** (the same file is in
+  **V2026.14-lr.1**). `ASTER_FAST=0`
   still uses Python only. fast.2 is the previous executable (no preparation
   window, free faces still counted in Python).
 
@@ -123,6 +117,17 @@
   absolute residual stays about 0 (e.g. an imposed displacement before the contact closes,
   as in Mecway's sample PipeClip), the message now says that the relative criterion cannot
   converge and advises *Convergence criterion* = RELA_OF_MAXI (PipeClip then completes).
+
+## V2026.14-lr.1 – 19 November 2026
+
+- **MUMPS low-rank (`mumps_lr`).** On the start screen, under *Solver*, next to
+  *MUMPS NPREC*. Default off: no extra keywords, so existing `.comm` files stay as
+  they are (full rank). On sets `ACCELERATION='LR+'` and `LOW_RANK_SEUIL=1.E-8` on
+  every MUMPS solve (smaller factor, less RAM, less JEVEUX traffic to `glob.*`;
+  not bit-identical, `RESI_RELA` still checks). GCPC ignores it. Per model:
+  `#ASTER-OPTIE mumps_lr = on`. The Windows zip is fork release **V2026.14-lr.1**;
+  `aster_fast.exe` in that zip is the **V2026.14-fast.3** build. The version on the
+  start screen stays **V2026.14**.
 
 ## V2026.14 – 18 November 2026
 

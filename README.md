@@ -12,7 +12,7 @@ in Mecway's *Custom model definition*.
 
 [![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/trednuk/mecwayasterbridge?utm_source=readme&utm_medium=badge)
 
-Version: **V2026.14** (fork release **[V2026.14-fast.3](https://github.com/larsmei/MecwayAsterBridge/releases/tag/V2026.14-fast.3)**,
+Version: **V2026.14** (fork release **[V2026.14-lr.1](https://github.com/larsmei/MecwayAsterBridge/releases/tag/V2026.14-lr.1)**,
 see [`CHANGELOG.md`](CHANGELOG.md)). Dutch documentation:
 [`docs/Handleiding.md`](docs/Handleiding.md). This repository is a fork of
 [trednuK/MecwayAsterBridge](https://github.com/trednuK/MecwayAsterBridge) with a faster
@@ -47,7 +47,7 @@ independently before you rely on them.**
    `%LOCALAPPDATA%\code_aster\v2025\17.4\bin\run_aster.bat`, which is the bridge's
    default; nothing needs to be set if you keep that location.
 2. **Get the bridge.** Download and unpack the Windows release
-   [`MecwayAsterBridge-V2026.14-fast.3-windows.zip`](https://github.com/larsmei/MecwayAsterBridge/releases/tag/V2026.14-fast.3).
+   [`MecwayAsterBridge-V2026.14-lr.1-windows.zip`](https://github.com/larsmei/MecwayAsterBridge/releases/tag/V2026.14-lr.1).
    That archive already contains `Scripts\aster_fast.exe`.
    Or clone this repository:
    ```
