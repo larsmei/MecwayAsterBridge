@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Large meshes: the ASTER mesh file is written in chunks.**
+  `write_mesh` no longer builds every line of the `.mail` and joins them at the end.
+  The same bytes are written in 1 MiB pieces, so an 800k-node model does not hold the
+  whole file twice in memory before Code-Aster starts (IronPython 2.7). The mesh text
+  is unchanged (`tests/test_bridge_mesh_stream.py`).
+
 - **Mecway 36: route `tabel` replaces Mecway's own stresses per element node** (KNOWN_BUGS 7).
   Route `tabel` wrote Code-Aster's results per node only, and Mecway kept showing the stresses
   per element node of its own solve. With Mecway's new `solution.set_element_node_variable()`
