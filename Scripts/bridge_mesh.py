@@ -415,6 +415,91 @@ def _wrap(items, width=79):
     return lines
 
 
+# Characters held before a flush. One list of every mesh line, joined at
+# the end, kept the whole file twice in memory; on an 800k-node model that
+# dominated the time before Code-Aster starts (IronPython 2.7). 1 MiB stays
+# small and is still one large write.
+_MAIL_CHUNK = 1 << 20
+
+
+class _MailStream(object):
+    """Line buffer. The file is the lines joined by newlines, plus a final newline."""
+
+    def __init__(self, handle):
+        self._f = handle
+        self._buf = []
+        self._n = 0
+
+    def line(self, text):
+        self._buf.append(text)
+        self._n += len(text) + 1
+        if self._n >= _MAIL_CHUNK:
+            self.flush()
+
+    def wrapped(self, items, width=79):
+        """Same breaks as ``_wrap``, without keeping the line list."""
+        cur = ""
+        for it in items:
+            if cur and len(cur) + 1 + len(it) > width:
+                self.line(cur)
+                cur = ""
+            cur += " " + it
+        if cur:
+            self.line(cur)
+
+    def flush(self):
+        if self._buf:
+            self._f.write("\n".join(self._buf))
+            self._f.write("\n")
+            del self._buf[:]
+            self._n = 0
+
+
+def _write_aster_mail(mail_path, nids, nodes, extra_nodes, by_type,
+                      group_ma, group_no):
+    """Stream the ASTER mesh (``LIRE_MAILLAGE FORMAT='ASTER'``).
+
+    ``extra_nodes`` is ``[(nid, xyz), ...]`` after the Mecway nodes: offset
+    copies, flexible-joint nodes, then pre-tension copies, already in file
+    order. Group dicts are written in their own order.
+    """
+    f = open(mail_path, "w")
+    try:
+        w = _MailStream(f)
+        w.line("TITRE")
+        w.line(" Mecway-model via MecwayAsterBridge")
+        w.line("FINSF")
+        w.line("COOR_3D")
+        for nid in nids:
+            # 15 significant digits: the line stays under 80 characters.
+            w.line(" N{0} {1}".format(nid, " ".join(
+                _real(c) for c in nodes[nid])))
+        # Nodes of offset elements (bridge_offset) and then those of
+        # flexible joints after the Mecway nodes, numbered ascending (the
+        # results are read back by node index: row i < N stays
+        # Mecway node i+1)
+        # and then the copies and reference nodes of pre-tension sections
+        for nid, xyz in extra_nodes:
+            w.line(" N{0} {1}".format(nid, " ".join(
+                _real(c) for c in xyz)))
+        w.line("FINSF")
+        for atype, items in by_type.items():
+            w.line(atype)
+            for name, cn in items:
+                w.wrapped([name] + ["N{0}".format(n) for n in cn])
+            w.line("FINSF")
+        for kind, groups in (("GROUP_MA", group_ma), ("GROUP_NO", group_no)):
+            for name, members in groups.items():
+                w.line(kind)
+                w.line(" {0}".format(name))
+                w.wrapped(members)
+                w.line("FINSF")
+        w.line("FIN")
+        w.flush()
+    finally:
+        f.close()
+
+
 # ==========================================
 # FACES
 # ==========================================
@@ -1790,45 +1875,16 @@ def write_mesh(mail_path, model_data, face_nodes=None):
     # 6. Writing
     # --------------------------------------------------
     try:
-        out = ["TITRE", " Mecway-model via MecwayAsterBridge", "FINSF",
-               "COOR_3D"]
-        for nid in nids:
-            # 15 significant digits: the line stays under 80 characters.
-            out.append(" N{0} {1}".format(nid, " ".join(
-                _real(c) for c in nodes[nid])))
-        # Nodes of offset elements (bridge_offset) and then those of
-        # flexible joints after the Mecway nodes, numbered ascending (the
-        # results are read back by node index: row i < N stays
-        # Mecway node i+1)
-        # and then the copies and reference nodes of pre-tension sections
-        for nid, xyz in ((offset_plan or {}).get("new_nodes", []) +
-                         list(joint_nodes.items()) +
-                         list(pret_nodes.items())):
-            out.append(" N{0} {1}".format(nid, " ".join(
-                _real(c) for c in xyz)))
-        out.append("FINSF")
         # Cell name per Code-Aster cell number (0-based, order in the
         # file); bridge_failure uses it to map failed cells to
         # Mecway elements (Code-Aster 17.4 has no getCellName).
         model_data["cell_names"] = [name for items in by_type.values()
                                     for name, _cn in items]
-        for atype, items in by_type.items():
-            out.append(atype)
-            for name, cn in items:
-                out.extend(_wrap([name] + ["N{0}".format(n) for n in cn]))
-            out.append("FINSF")
-        for kind, groups in (("GROUP_MA", group_ma), ("GROUP_NO", group_no)):
-            for name, members in groups.items():
-                out.append(kind)
-                out.append(" {0}".format(name))
-                out.extend(_wrap(members))
-                out.append("FINSF")
-        out.append("FIN")
-        f = open(mail_path, "w")
-        try:
-            f.write("\n".join(out) + "\n")
-        finally:
-            f.close()
+        extra_nodes = ((offset_plan or {}).get("new_nodes", []) +
+                       list(joint_nodes.items()) +
+                       list(pret_nodes.items()))
+        _write_aster_mail(mail_path, nids, nodes, extra_nodes, by_type,
+                          group_ma, group_no)
     except Exception as e:
         log(tr("ERROR: Schrijven van '{0}' mislukt: {1}",
                "ERROR: Writing '{0}' failed: {1}").format(mail_path, str(e)))
