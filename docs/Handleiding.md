@@ -90,7 +90,10 @@ Verwante documenten:
    opgeslagen, blijven tijdens de run dus onopgeslagen: loopt Mecway vast, dan ben je ze
    kwijt. In route `liml` (en zonder `mw.liml_text()` in elke route) stopt een alleen-lezen
    model of een verdwenen map de run meteen. Daarna leest hij de `.liml`, schrijft het mesh,
-   `<model>_<run-id>.comm` en `.export` in de werkmap (§5) en start Code-Aster in een
+   `<model>_<run-id>.comm` en `.export` in de werkmap (§5). Tot Code-Aster start staat het
+   venster **Voorbereiden** open: per stap de naam en de status (aantallen knopen, elementen,
+   groepen) en de verstreken tijd. Mecway is dan geblokkeerd. Het venster sluit zodra het
+   statusvenster van Code-Aster opent. Code-Aster start in een
    **apart venster**. Met route `tabel` controleert hij eerst of de Mecway-solution
    bij het mesh past; zo niet, dan stopt hij met een melding. Route `tabel` vraagt dus een
    model dat Mecway zelf kan oplossen: een model waar Mecway's eigen solve mislukt

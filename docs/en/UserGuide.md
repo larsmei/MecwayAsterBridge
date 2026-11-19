@@ -97,7 +97,10 @@ Related documents:
    during the run: if Mecway crashes, they are lost. In route `liml` (and in every route
    without `mw.liml_text()`) a read-only model or a folder that is gone stops the run at
    once. Then it reads the `.liml`, writes the mesh,
-   `<model>_<run-id>.comm` and `.export` to the work folder (§5) and starts Code-Aster
+   `<model>_<run-id>.comm` and `.export` to the work folder (§5). Until Code-Aster starts,
+   the **Preparing** window stays open: each step with its name and status (counts of
+   nodes, elements, groups) and the elapsed time. Mecway is locked. That window closes
+   when the Code-Aster status window opens. Code-Aster starts
    in a **separate window**. With route `tabel` it first checks that the Mecway
    solution matches the mesh; if not, it stops with a message. Route `tabel` therefore
    needs a model that Mecway itself can solve: a model on which Mecway's own solve fails

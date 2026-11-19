@@ -123,10 +123,11 @@ from bridge_utils       import (CONFIG_BRIDGE, log, resolve_auto_analysis,
                                 set_run_log, log_file_name, tr, run_name,
                                 run_names, path_too_long, work_dir_path,
                                 exe_aster_path, set_model_path,
-                                BRIDGE_VERSION, log_size, log_errors)
+                                BRIDGE_VERSION, log_size, log_errors, progress)
 from bridge_gui         import (run_settings_dialog, results_dialog,
                                 claim_instance, release_instance,
-                                instance_busy_text)
+                                instance_busy_text, open_prep_progress,
+                                close_prep_progress)
 from bridge_from_liml   import extract_aster_data_from_liml
 from bridge_mesh        import write_mesh
 from bridge_to_aster    import generate_AsterSolver_files, results_file
@@ -318,11 +319,18 @@ def _run(settings):
     # after a Code-Aster job that did not end cleanly (keep: the .comm
     # names it, for a run of the .export by hand).
     model_copy = {"path": None, "keep": False}
+    prep_open = False
     try:
+        prep_open = open_prep_progress(run_name(""))
+        progress(tr("Start", "Start"), tr(
+            "Run {0}", "Run {0}").format(run_name("")), None, True)
         # --- Step 1: Solve in Mecway (optional check for errors) ---
         # The Mecway API documents no return value for mw.solve(); an
         # error is therefore only detected if mw.solve() raises an exception.
         if CONFIG_BRIDGE.get("mecway_solve_first", False):
+            progress(tr("Controle", "Check"), tr(
+                "Mecway-solve ter controle...",
+                "Mecway solve as a check..."), None, True)
             log("INFO: Mecway solve started as a check.")
             try:
                 mw.solve()
@@ -399,6 +407,9 @@ def _run(settings):
         # results leaves the file as it was. Without the API, and an
         # untitled model in route 'liml': save first, as before.
         model_liml = None
+        progress(tr("Model", "Model"), tr(
+            "Modelkopie maken...", "Making a copy of the model..."),
+            None, True)
         if bridge_liml_text.wants_snapshot(bridge_liml_text.available(mw),
                                            route, mw.file_name()):
             save_error = _save_check() if route == "liml" else None
@@ -426,6 +437,8 @@ def _run(settings):
 
         # --- Step 3: Read model_data from the .liml file ---
         mark = log_size()
+        progress(tr("Model lezen", "Reading the model"), tr(
+            ".liml openen...", "Opening the .liml..."), None, True)
         model_data = extract_aster_data_from_liml(model_liml)
         _LAST["model_data"] = model_data      # adaptive refinement
         if model_data is None:
@@ -513,6 +526,8 @@ def _run(settings):
         # bridge_mesh.py.
         mesh_file = os.path.join(work_dir_path(), run_name(".mail"))
         mark = log_size()
+        progress(tr("Mesh schrijven", "Writing the mesh"), tr(
+            "Mesh opbouwen...", "Building the mesh..."), None, True)
         if not write_mesh(mesh_file, model_data, face_nodes=_face_nodes):
             _notify(_prep_failed(tr("Schrijven van het mesh mislukt.",
                                     "Writing the mesh failed."), mark))
@@ -528,6 +543,9 @@ def _run(settings):
 
         # --- Step 4: Generate .comm and .export ---
         mark = log_size()
+        progress(tr("Solverbestanden", "Solver files"), tr(
+            ".comm en .export schrijven...",
+            "Writing .comm and .export..."), None, True)
         export_file = generate_AsterSolver_files(
             work_dir_path(), model_data, mesh_file, resu_name
         )
@@ -542,6 +560,12 @@ def _run(settings):
         # can handle pop-ups and results outside the scripting context.
         run_start = time.time()
         model_copy["keep"] = True     # until the job is known to be clean
+        progress(tr("Code-Aster starten", "Starting Code-Aster"), tr(
+            "Code-Aster wordt gestart...", "Code-Aster is starting..."),
+            None, True)
+        if prep_open:
+            close_prep_progress()
+            prep_open = False
         job = run_AsterSolver(export_file, work_dir_path(), resu_name, mw)
         if not job:
             bridge_manifest.finish_run(work_dir_path(), model_data,
@@ -703,6 +727,8 @@ def _run(settings):
                "ERROR: Unexpected error in main(): {0}").format(str(e)))
         raise  # Pass the error on so that the except block below logs it
     finally:
+        if prep_open:
+            close_prep_progress()
         if model_copy["path"] and model_copy["keep"]:
             log("INFO: Model copy kept: {0} (the .comm of this run reads it; "
                 "the run did not end cleanly).".format(model_copy["path"]))

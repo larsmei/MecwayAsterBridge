@@ -12,7 +12,7 @@ in Mecway's *Custom model definition*.
 
 [![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/trednuk/mecwayasterbridge?utm_source=readme&utm_medium=badge)
 
-Version: **V2026.14** (fork release **[V2026.14-fast.2](https://github.com/larsmei/MecwayAsterBridge/releases/tag/V2026.14-fast.2)**,
+Version: **V2026.14** (fork release **[V2026.14-fast.3](https://github.com/larsmei/MecwayAsterBridge/releases/tag/V2026.14-fast.3)**,
 see [`CHANGELOG.md`](CHANGELOG.md)). Dutch documentation:
 [`docs/Handleiding.md`](docs/Handleiding.md). This repository is a fork of
 [trednuK/MecwayAsterBridge](https://github.com/trednuK/MecwayAsterBridge) with a faster
@@ -47,7 +47,7 @@ independently before you rely on them.**
    `%LOCALAPPDATA%\code_aster\v2025\17.4\bin\run_aster.bat`, which is the bridge's
    default; nothing needs to be set if you keep that location.
 2. **Get the bridge.** Download and unpack the Windows release
-   [`MecwayAsterBridge-V2026.14-fast.2-windows.zip`](https://github.com/larsmei/MecwayAsterBridge/releases/tag/V2026.14-fast.2).
+   [`MecwayAsterBridge-V2026.14-fast.3-windows.zip`](https://github.com/larsmei/MecwayAsterBridge/releases/tag/V2026.14-fast.3).
    That archive already contains `Scripts\aster_fast.exe`.
    Or clone this repository:
    ```
@@ -73,8 +73,10 @@ independently before you rely on them.**
 On a model of about 800,000 nodes, IronPython 2.7 can spend more than half an hour
 building the files before Code-Aster starts. `Scripts\aster_fast.exe` does the two slow
 steps outside IronPython: it reads the mesh out of the `.liml` (results under `<solution>`
-are still skipped) and writes the Code-Aster `.mail`. The mesh text is the same as the
-pure Python writer. Materials, loads and constraints are still read by the bridge.
+are still skipped), counts the free faces of the solids and writes the Code-Aster `.mail`.
+The mesh text is the same as the pure Python writer. Materials, loads and constraints are
+still read by the bridge. While those steps run, the **Preparing** window shows each step
+and its status; it closes when the Code-Aster status window opens.
 
 The Windows zip already has the program in place. Nothing else to install, and no `pip`
 package. If `aster_fast.exe` sits next to `MecwayAsterBridgeMain.py`, the bridge uses it
@@ -101,7 +103,9 @@ used.
      Empty means `WorkDir` next to the `Scripts` folder; it is created when needed;
    - the active analysis follows the Mecway analysis type (`auto`); each analysis has
      its own page with settings. Hover over a setting for an explanation.
-3. Click **Start**. Code-Aster runs in a separate window; the convergence window shows
+3. Click **Start**. A **Preparing** window shows each step until Code-Aster starts
+   (reading the model, writing the mesh, writing `.comm` and `.export`), with counts and
+   the elapsed time. Code-Aster then runs in a separate window; the convergence window shows
    the progress. A status window in Mecway shows the elapsed time and the current step,
    with a *Stop...* button; Mecway is locked until the run has finished. When Code-Aster
    has finished, the status window closes by itself, the model is reopened with the

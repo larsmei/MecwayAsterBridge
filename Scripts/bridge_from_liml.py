@@ -44,7 +44,8 @@ import math
 import xml.etree.ElementTree as ET
 from bridge_utils import (log, parse_and_convert, CONFIG_BRIDGE,
                           resolve_auto_analysis, tr,
-                          choose_configuration, configuration_warning)
+                          choose_configuration, configuration_warning,
+                          progress)
 from bridge_bcs import (SUPPORTED_BCS, _parse_direction, _parse_value,
                         is_position)
 import bridge_radioss
@@ -1947,6 +1948,8 @@ def extract_aster_data_from_liml(file_path, warn_supports=True):
           unexpected error during parsing (ERROR in the log).
     """
     log("START: Analyseren van .liml")
+    progress(tr("Model lezen", "Reading the model"), tr(
+        "Analyseren van .liml", "Analysing the .liml"), None, True)
     hex8_mod  = _elem_choice("elem_hex8")
     shell_mod = _elem_choice("elem_shell")
     beam_mod  = _elem_choice("elem_beam")
@@ -2069,7 +2072,7 @@ def extract_aster_data_from_liml(file_path, warn_supports=True):
                 model_data["element_selections"].clear()
                 model_data["node_groups"].clear()
                 for key in ("elem_u_axes", "elem_v_axes", "elem_angles",
-                            "_fast_mesh"):
+                            "_fast_mesh", "_fast_boundary"):
                     model_data.pop(key, None)
                 root = _parse_model_root(file_path)
                 _apply_suppression(root, model_data)
@@ -2350,6 +2353,9 @@ def extract_aster_data_from_liml(file_path, warn_supports=True):
         # ==========================================
         # STEP 2: PROCESS REMAINING ELEMENTS
         # ==========================================
+        progress(tr("Model lezen", "Reading the model"), tr(
+            "Materialen, belastingen en randvoorwaarden",
+            "Materials, loads and boundary conditions"), None, True)
         for item in root:
             tag = item.tag
             log("DEBUG tag: '{0}' selection='{1}'".format(
