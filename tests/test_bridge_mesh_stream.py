@@ -81,7 +81,7 @@ def _compare(chunk, label):
     fd, path = tempfile.mkstemp(suffix=".mail")
     os.close(fd)
     try:
-        m._write_aster_mail(path, nids, nodes, extra, by_type,
+        m._write_aster_mail_py(path, nids, nodes, extra, by_type,
                             group_ma, group_no)
         with open(path, "r") as f:
             got = f.read()
@@ -104,7 +104,7 @@ def main():
     fd, path = tempfile.mkstemp(suffix=".mail")
     os.close(fd)
     try:
-        m._write_aster_mail(path, [1], {1: (0.0, 0.0, 0.0)}, [], {}, {}, {})
+        m._write_aster_mail_py(path, [1], {1: (0.0, 0.0, 0.0)}, [], {}, {}, {})
         with open(path, "r") as f:
             got = f.read()
     finally:

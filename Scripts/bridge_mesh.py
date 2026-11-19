@@ -462,7 +462,25 @@ def _write_aster_mail(mail_path, nids, nodes, extra_nodes, by_type,
     ``extra_nodes`` is ``[(nid, xyz), ...]`` after the Mecway nodes: offset
     copies, flexible-joint nodes, then pre-tension copies, already in file
     order. Group dicts are written in their own order.
+
+    ``aster_fast mail`` writes the same bytes when the helper is present
+    (``bridge_fast``). A missing or failing helper uses the Python writer.
     """
+    try:
+        import bridge_fast
+        if bridge_fast.write_mail(mail_path, nids, nodes, extra_nodes,
+                                  by_type, group_ma, group_no):
+            return
+    except Exception as exc:
+        log("WARNING: aster_fast mail was not used ({0}); writing the "
+            "mesh in Python.".format(exc))
+    _write_aster_mail_py(mail_path, nids, nodes, extra_nodes, by_type,
+                         group_ma, group_no)
+
+
+def _write_aster_mail_py(mail_path, nids, nodes, extra_nodes, by_type,
+                         group_ma, group_no):
+    """Python writer. Same bytes as ``aster_fast mail``."""
     f = open(mail_path, "w")
     try:
         w = _MailStream(f)

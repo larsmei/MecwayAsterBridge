@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Large meshes: optional Rust helper for the .liml read and the ASTER mesh.**
+  `aster_fast` (crate `rust/aster_fast`, no dependencies) does the two steps that
+  dominate the time before Code-Aster starts on an 800k-node model under IronPython 2.7:
+  streaming the mesh out of the `.liml` (the slim XML that ElementTree then parses has
+  no nodes, elements or selection members; `<solution>` is still not read) and writing
+  the `.mail` numbers. The bytes of the `.mail` match the Python writer. Without the
+  executable, or when `ASTER_FAST=0`, the bridge behaves as before. Build with
+  `cargo build --release --manifest-path rust/aster_fast/Cargo.toml` and copy
+  `target/release/aster_fast` (Windows: `aster_fast.exe`) next to `Scripts/`, or set
+  `ASTER_FAST` to that path. IronPython cannot load a Rust extension, so this is a
+  separate program. `tests/test_bridge_fast.py`.
+
 - **Large meshes: the ASTER mesh file is written in chunks.**
   `write_mesh` no longer builds every line of the `.mail` and joins them at the end.
   The same bytes are written in 1 MiB pieces, so an 800k-node model does not hold the
